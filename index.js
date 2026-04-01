@@ -23,7 +23,7 @@ const bodyParser = require('body-parser');
 
 // const dayjs = require('dayjs');
 app.use(cors({
-  origin: "https://song-ugc-copy-link.netlify.app",   //production: replace with the netlify url
+  origin: "https://podugccopy.netlify.app",   //production: replace with the netlify url
   credentials: true
 }));
 app.use(express.json())
@@ -38,7 +38,7 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: uri,
-      dbName: "songsUGClink",
+      dbName: "",
       ttl: 365 * 24 * 60 * 60,
     }),
     cookie: {
@@ -124,13 +124,13 @@ async function run() {
     // Connect the client to the server
     await client.connect();
 
-    const songsCollection = client.db("songsUGClink").collection("songsLinkList");
-    const copyRightCollection = client.db("songsUGClink").collection("copyLinkList");
-    const userCollection = client.db("songsUGClink").collection("users");
+    const songsCollection = client.db("podUGClink").collection("songsLinkList");
+    const copyRightCollection = client.db("podUGClink").collection("copyLinkList");
+    const userCollection = client.db("podUGClink").collection("users");
 
     // NEW collections for YouTube tokens & revenues
-    const ytTokensCollection = client.db("songsUGClink").collection("yt_tokens");
-    const revenuesCollection = client.db("songsUGClink").collection("revenues");
+    const ytTokensCollection = client.db("podUGClink").collection("yt_tokens");
+    const revenuesCollection = client.db("podUGClink").collection("revenues");
 
     /*-------------------------------------------------*/
     // ✅ 1. First define the function
@@ -947,7 +947,7 @@ app.post("/register", async (req, res) => {
   );
 
   // change to your frontend URL in production
-  const resetUrl = `https://song-ugc-copy-link.netlify.app/reset-password/${token}`;
+  const resetUrl = `https://podugccopy.netlify.app/reset-password/${token}`;
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -990,7 +990,7 @@ app.post("/register", async (req, res) => {
     //     { $set: { resetToken: token, resetTokenExpiry: expiry } }
     //   );
 
-    //   const resetUrl = `https://song-ugc-copy-link.netlify.app/reset-password/${token}`;
+    //   const resetUrl = `https://podugccopy.netlify.app/reset-password/${token}`;
 
     //   const transporter = nodemailer.createTransport({
     //     service: 'gmail',
@@ -1031,7 +1031,7 @@ app.post("/register", async (req, res) => {
       // ❌ REMOVE THIS (it was causing the crash)
       // await userCollection.updateOne({ email });
 
-      const resetUrl = `https://song-ugc-copy-link.netlify.app/reset-password?email=${email}`;
+      const resetUrl = `https://podugccopy.netlify.app/reset-password?email=${email}`;
 
       const transporter = nodemailer.createTransport({
         service: "gmail",
