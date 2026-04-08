@@ -359,7 +359,7 @@ async function run() {
     })
 
 
-      app.get("/songs/statusPendding", requireUser, async (req, res) => {
+    app.get("/songs/statusPendding", requireUser, async (req, res) => {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 100;
       const skip = (page - 1) * limit;
@@ -453,6 +453,35 @@ async function run() {
       const result = await songsCollection.findOne(query)
       res.send(result)
     })
+
+    app.post("/songs/check", async (req, res) => {
+      const { youtubeLink } = req.body;
+
+      const extractVideoId = (url) => {
+        const regex = /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+      };
+
+      const incomingVideoId = extractVideoId(youtubeLink);
+
+      if (!incomingVideoId) {
+        return res.status(400).send({ message: "Invalid YouTube link" });
+      }
+
+      const existingSongs = await songsCollection.find({}, { projection: { youtubeLink: 1 } }).toArray();
+
+      const isDuplicate = existingSongs.some(song => {
+        const storedVideoId = extractVideoId(song.youtubeLink);
+        return storedVideoId === incomingVideoId;
+      });
+
+      if (isDuplicate) {
+        return res.send({ exists: true });
+      }
+
+      res.send({ exists: false });
+    });
 
     app.post("/songs", async (req, res) => {
       const newSong = req.body;
@@ -551,39 +580,39 @@ async function run() {
     //user api
 
     // POST /start-registration
-app.post("/register", async (req, res) => {
-  try {
-    const { email, name, password, role } = req.body;
+    app.post("/register", async (req, res) => {
+      try {
+        const { email, name, password, role } = req.body;
 
-    // Check if user already exists
-    const existing = await userCollection.findOne({ email });
-    if (existing) {
-      return res.status(409).send({ message: "User already exists" });
-    }
+        // Check if user already exists
+        const existing = await userCollection.findOne({ email });
+        if (existing) {
+          return res.status(409).send({ message: "User already exists" });
+        }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user object
-    const newUser = {
-      email,
-      name,
-      role: role || "user",
-      password: hashedPassword,
-    };
+        // Create new user object
+        const newUser = {
+          email,
+          name,
+          role: role || "user",
+          password: hashedPassword,
+        };
 
-    // Insert into database
-    const result = await userCollection.insertOne(newUser);
+        // Insert into database
+        const result = await userCollection.insertOne(newUser);
 
-    res.status(201).send({
-      message: "User registered successfully",
-      userId: result.insertedId,
+        res.status(201).send({
+          message: "User registered successfully",
+          userId: result.insertedId,
+        });
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Registration failed", error: err });
+      }
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Registration failed", error: err });
-  }
-});
 
     // ----------Login route--------------
     app.post("/login", async (req, res) => {
@@ -932,45 +961,45 @@ app.post("/register", async (req, res) => {
 
 
 
-  const user = await userCollection.findOne({ email });
+      const user = await userCollection.findOne({ email });
 
-  if (!user) {
-    return res.status(404).send({ message: "User not found" });
-  }
+      if (!user) {
+        return res.status(404).send({ message: "User not found" });
+      }
 
-  const token = crypto.randomBytes(32).toString('hex');
+      const token = crypto.randomBytes(32).toString('hex');
 
-  // Store token without expiry
-  await userCollection.updateOne(
-    { email },
-    { $set: { resetToken: token } }
-  );
+      // Store token without expiry
+      await userCollection.updateOne(
+        { email },
+        { $set: { resetToken: token } }
+      );
 
-  // change to your frontend URL in production
-  const resetUrl = `https://podugccopy.netlify.app/reset-password/${token}`;
+      // change to your frontend URL in production
+      const resetUrl = `https://podugccopy.netlify.app/reset-password/${token}`;
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'hasandewam@gmail.com',
-      pass: 'xsfq hopu uvqu sacz'
-    }
-  });
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: 'hasandewam@gmail.com',
+          pass: 'xsfq hopu uvqu sacz'
+        }
+      });
 
-  const mailOptions = {
-    from: '"CLAP" <hasandewam@gmail.com>',
-    to: email,
-    subject: "Reset Your Password",
-    text: `Click the link to reset your password: ${resetUrl}`
-  };
+      const mailOptions = {
+        from: '"CLAP" <hasandewam@gmail.com>',
+        to: email,
+        subject: "Reset Your Password",
+        text: `Click the link to reset your password: ${resetUrl}`
+      };
 
-  try {
-    await transporter.sendMail(mailOptions);
-    res.send({ message: "Password reset email sent." });
-  } catch (err) {
-    res.status(500).send({ message: "Email send failed", error: err });
-  }
-});
+      try {
+        await transporter.sendMail(mailOptions);
+        res.send({ message: "Password reset email sent." });
+      } catch (err) {
+        res.status(500).send({ message: "Email send failed", error: err });
+      }
+    });
 
 
     // app.post("/forgot-password", async (req, res) => {
