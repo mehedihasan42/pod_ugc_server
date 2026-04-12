@@ -181,14 +181,14 @@ async function run() {
     /*---------------------------------------------------*/
 
     // --- All your existing route handlers follow (unchanged) ---
-    app.get("/songs", requireUser, async (req, res) => {
+   app.get("/songs", requireUser, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 100;
         const skip = (page - 1) * limit;
 
         const email = req.query.email;
-        const search = req.query.search?.trim() || ""; // 👈 get search term
+        const search = req.query.search?.trim() || "";
 
         if (!email) {
           return res.status(400).send({ message: "Email is required" });
@@ -200,23 +200,34 @@ async function run() {
           return res.status(403).send({ message: "User not found" });
         }
 
-        // Base query (exclude done, processing, archive)
-        let query = { status: { $nin: ["done", "processing", "archive", "pending"] } };
+        let query = { $and: [] };
 
-        // Restrict normal users to only their uploaded/original songs
+        // 🔹 Role filter (always applied)
         if (user.role === "user") {
-          query.rightOwner = user.name;
+          query.$and.push({ rightOwner: user.name });
         }
 
-        // 👇 Add search filter if provided
+        // 🔹 Search filter
         if (search) {
-          query.$or = [
-            { title: { $regex: search, $options: "i" } },
-            { originalSinger: { $regex: search, $options: "i" } },
-            { youtubeLink: { $regex: search, $options: "i" } },
-            { uploader: { $regex: search, $options: "i" } },
-            { rightOwner: { $regex: search, $options: "i" } },
-          ];
+          query.$and.push({
+            $or: [
+              { title: { $regex: search, $options: "i" } },
+              { originalSinger: { $regex: search, $options: "i" } },
+              { youtubeLink: { $regex: search, $options: "i" } },
+              { uploader: { $regex: search, $options: "i" } },
+              { rightOwner: { $regex: search, $options: "i" } },
+            ],
+          });
+        } else {
+          // ❗ ONLY apply status filter when NOT searching
+          query.$and.push({
+            status: { $nin: ["done", "processing", "archive", "pending"] },
+          });
+        }
+
+        // If no conditions, fallback to empty object
+        if (query.$and.length === 0) {
+          query = {};
         }
 
         const total = await songsCollection.countDocuments(query);
