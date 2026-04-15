@@ -181,7 +181,7 @@ async function run() {
     /*---------------------------------------------------*/
 
     // --- All your existing route handlers follow (unchanged) ---
-   app.get("/songs", requireUser, async (req, res) => {
+    app.get("/songs", requireUser, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 100;
@@ -340,7 +340,7 @@ async function run() {
       }
     });
 
-   app.get("/songs/statusDn", requireUser, async (req, res) => {
+    app.get("/songs/statusDn", requireUser, async (req, res) => {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 100;
       const skip = (page - 1) * limit;
@@ -690,7 +690,42 @@ async function run() {
       res.send({ data, total });
     })
 
-     app.put("/songs/:id", async (req, res) => {
+    app.get("/songs/suggestions", async (req, res) => {
+      try {
+        const search = req.query.q || "";
+
+        const songs = await songsCollection
+          .find({
+            $or: [
+              { title: { $regex: search, $options: "i" } },
+              { originalSinger: { $regex: search, $options: "i" } }
+            ]
+          })
+          .project({
+            title: 1,
+            originalSinger: 1,
+            originalLink: 1
+          })
+          .toArray();
+
+        // Remove duplicates
+        const uniqueMap = new Map();
+
+        songs.forEach(song => {
+          const key = `${song.title}-${song.originalSinger}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, song);
+          }
+        });
+
+        res.send(Array.from(uniqueMap.values()));
+
+      } catch (err) {
+        res.status(500).send({ message: "Failed to fetch suggestions" });
+      }
+    });
+
+    app.put("/songs/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const updatedData = req.body;
