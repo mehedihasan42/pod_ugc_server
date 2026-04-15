@@ -340,7 +340,7 @@ async function run() {
       }
     });
 
-    app.get("/songs/statusDn", requireUser, async (req, res) => {
+   app.get("/songs/statusDn", requireUser, async (req, res) => {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 100;
       const skip = (page - 1) * limit;
@@ -457,6 +457,277 @@ async function run() {
 
       res.send({ data, total });
     })
+
+    app.get("/songs/BlvClaims", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "Belive Claim" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/CIDClaims", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "CID Claim" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/claimsRelease", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "Claim Release" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/officialSongs", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "Official Song" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/beliveAudio", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "Belive Audio" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/CIDaudio", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "CID Audio" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/Publishing", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "Publishing" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+    app.get("/songs/takedown", requireUser, async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      const query = { todo: { $eq: "Takedown" } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
+     app.put("/songs/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
+
+        const filter = { _id: new ObjectId(id) };
+
+        const updateDoc = {
+          $set: {
+            rightOwner: updatedData.rightOwner,
+            title: updatedData.title,
+            originalSinger: updatedData.originalSinger,
+            uploader: updatedData.uploader,
+            youtubeLink: updatedData.youtubeLink,
+            view: parseInt(updatedData.view),
+            startTime: updatedData.startTime,
+            endTime: updatedData.endTime,
+            action: updatedData.action,
+            todo: updatedData.todo,
+            status: updatedData.status,
+          },
+        };
+
+        const result = await songsCollection.updateOne(filter, updateDoc);
+
+        res.send({
+          success: true,
+          message: "Song updated successfully",
+          result,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to update song",
+        });
+      }
+    });
 
     app.get("/songs/:id", async (req, res) => {
       const id = req.params.id
