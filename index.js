@@ -125,6 +125,7 @@ async function run() {
     await client.connect();
 
     const songsCollection = client.db("podUGClink").collection("songsLinkList");
+    const originalSongsList = client.db("podUGClink").collection("originalSongsList");
     const copyRightCollection = client.db("podUGClink").collection("copyLinkList");
     const userCollection = client.db("podUGClink").collection("users");
 
@@ -295,50 +296,124 @@ async function run() {
       res.send({ data });
     });
 
-    app.patch('/songs/add-original-link', async (req, res) => {
-      let { title, originalSinger, originalLink } = req.body;
+    /* --------------original list------------------*/
 
+    app.get('/songs/original-links', async (req, res) => {
+      try {
+        const { title, singer } = req.query;
+
+        let query = {};
+
+        if (title) {
+          query.title = { $regex: title, $options: "i" }; // case-insensitive
+        }
+
+        if (singer) {
+          query.originalSinger = { $regex: singer, $options: "i" };
+        }
+
+        const result = await originalSongsList.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ message: "Failed to fetch data" });
+      }
+    });
+
+    app.post('/songs/add-original-link', async (req, res) => {
+      let { title, originalSinger, originalLink } = req.body;
       if (!title || !originalSinger || !originalLink) {
         return res.status(400).json({ message: 'Missing required fields' });
       }
+      const result = await originalSongsList.insertOne({ title, originalSinger, originalLink });
+      res.send(result);
+    });
 
-      // Normalize and trim input strings (important for Bangla or any Unicode)
-      title = title.trim().normalize('NFC');
-      originalSinger = originalSinger.trim().normalize('NFC');
-
-      // console.log("Received:", { title, originalSinger, originalLink });
-
+    app.patch('/songs/original-links/:id', async (req, res) => {
       try {
-        // Fetch and normalize all titles + singers from DB first
-        const songs = await songsCollection.find({}).toArray();
+        const { id } = req.params;
+        const { title, originalSinger, originalLink } = req.body;
 
-        const toUpdate = songs.filter(song => {
-          const songTitle = (song.title || '').trim().normalize('NFC');
-          const songSinger = (song.originalSinger || '').trim().normalize('NFC');
-          return songTitle === title && songSinger === originalSinger;
-        });
-
-        if (toUpdate.length === 0) {
-          return res.status(404).json({ message: 'No matching songs found' });
+        if (!title || !originalSinger || !originalLink) {
+          return res.status(400).json({ message: "Missing required fields" });
         }
 
-        const ids = toUpdate.map(song => song._id);
+        const filter = { _id: new ObjectId(id) };
 
-        const result = await songsCollection.updateMany(
-          { _id: { $in: ids } },
-          { $set: { originalLink } }
-        );
+        const updateDoc = {
+          $set: {
+            title,
+            originalSinger,
+            originalLink,
+          },
+        };
 
-        res.json({
-          message: 'Update completed with normalization',
-          matchedCount: result.matchedCount,
-          modifiedCount: result.modifiedCount
-        });
-      } catch (err) {
-        console.error('Error updating original link:', err);
-        res.status(500).json({ message: 'Server error' });
+        const result = await originalSongsList.updateOne(filter, updateDoc);
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ message: "Update failed" });
       }
     });
+
+    app.delete('/songs/original-links/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const result = await originalSongsList.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ message: "Delete failed" });
+      }
+    });
+
+
+    // app.post('/songs/add-original-link', async (req, res) => {
+    //   let { title, originalSinger, originalLink } = req.body;
+
+    //   if (!title || !originalSinger || !originalLink) {
+    //     return res.status(400).json({ message: 'Missing required fields' });
+    //   }
+
+    //   // Normalize and trim input strings (important for Bangla or any Unicode)
+    //   title = title.trim().normalize('NFC');
+    //   originalSinger = originalSinger.trim().normalize('NFC');
+
+    //   // console.log("Received:", { title, originalSinger, originalLink });
+
+    //   try {
+    //     // Fetch and normalize all titles + singers from DB first
+    //     const songs = await songsCollection.find({}).toArray();
+
+    //     const toUpdate = songs.filter(song => {
+    //       const songTitle = (song.title || '').trim().normalize('NFC');
+    //       const songSinger = (song.originalSinger || '').trim().normalize('NFC');
+    //       return songTitle === title && songSinger === originalSinger;
+    //     });
+
+    //     if (toUpdate.length === 0) {
+    //       return res.status(404).json({ message: 'No matching songs found' });
+    //     }
+
+    //     const ids = toUpdate.map(song => song._id);
+
+    //     const result = await songsCollection.updateMany(
+    //       { _id: { $in: ids } },
+    //       { $set: { originalLink } }
+    //     );
+
+    //     res.json({
+    //       message: 'Update completed with normalization',
+    //       matchedCount: result.matchedCount,
+    //       modifiedCount: result.modifiedCount
+    //     });
+    //   } catch (err) {
+    //     console.error('Error updating original link:', err);
+    //     res.status(500).json({ message: 'Server error' });
+    //   }
+    // });
 
     app.get("/songs/statusDn", requireUser, async (req, res) => {
       const page = parseInt(req.query.page) || 1;
@@ -694,7 +769,7 @@ async function run() {
       try {
         const search = req.query.q || "";
 
-        const songs = await songsCollection
+        const songs = await originalSongsList
           .find({
             $or: [
               { title: { $regex: search, $options: "i" } },
