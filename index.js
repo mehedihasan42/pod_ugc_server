@@ -23,7 +23,7 @@ const bodyParser = require('body-parser');
 
 // const dayjs = require('dayjs');
 app.use(cors({
-  origin: "https://podugccopy.netlify.app",   //production: replace with the netlify url
+  origin: "https://pod-ugc-service.netlify.app",   //production: replace with the netlify url
   credentials: true
 }));
 app.use(express.json())
@@ -1368,7 +1368,7 @@ async function run() {
       );
 
       // change to your frontend URL in production
-      const resetUrl = `https://podugccopy.netlify.app/reset-password/${token}`;
+      const resetUrl = `https://pod-ugc-service.netlify.app/reset-password/${token}`;
 
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -1411,7 +1411,7 @@ async function run() {
     //     { $set: { resetToken: token, resetTokenExpiry: expiry } }
     //   );
 
-    //   const resetUrl = `https://podugccopy.netlify.app/reset-password/${token}`;
+    //   const resetUrl = `https://pod-ugc-service.netlify.app/reset-password/${token}`;
 
     //   const transporter = nodemailer.createTransport({
     //     service: 'gmail',
@@ -1452,7 +1452,7 @@ async function run() {
       // ❌ REMOVE THIS (it was causing the crash)
       // await userCollection.updateOne({ email });
 
-      const resetUrl = `https://podugccopy.netlify.app/reset-password?email=${email}`;
+      const resetUrl = `https://pod-ugc-service.netlify.app/reset-password?email=${email}`;
 
       const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -1582,7 +1582,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.send('Welcome to POD Copyright Management System!')
 })
 
 app.listen(port, () => {
