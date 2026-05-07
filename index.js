@@ -182,6 +182,7 @@ async function run() {
     /*---------------------------------------------------*/
 
     // --- All your existing route handlers follow (unchanged) ---
+
     app.get("/songs", requireUser, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
@@ -190,6 +191,8 @@ async function run() {
 
         const email = req.query.email;
         const search = req.query.search?.trim() || "";
+        const todo = req.query.todo || "";
+        const status = req.query.status || "";
 
         if (!email) {
           return res.status(400).send({ message: "Email is required" });
@@ -203,7 +206,7 @@ async function run() {
 
         let query = { $and: [] };
 
-        // 🔹 Role filter (always applied)
+        // 🔹 Role filter
         if (user.role === "user") {
           query.$and.push({ rightOwner: user.name });
         }
@@ -219,17 +222,32 @@ async function run() {
               { rightOwner: { $regex: search, $options: "i" } },
             ],
           });
-        } else {
-          // ❗ ONLY apply status filter when NOT searching
+        }
+
+        // ✅ TODO filter (NEW)
+        if (todo) {
+          query.$and.push({ todo: todo });
+        }
+
+        // ✅ STATUS filter (NEW)
+        if (status) {
+          query.$and.push({ status: status });
+        }
+
+        // ❗ Optional default filter (only if NO todo selected)
+        if (!todo && !status && !search) {
           query.$and.push({
-            status: { $nin: ["done", "processing", "archive", "pending"] },
+            todo: { $in: ["", null] },
+            status: { $in: ["", null] }
           });
         }
 
-        // If no conditions, fallback to empty object
+        // fallback if empty
         if (query.$and.length === 0) {
           query = {};
         }
+
+        // const query = { todo: {$in: ["", null] },status: { $in: ["", null] } };
 
         const total = await songsCollection.countDocuments(query);
 
@@ -240,6 +258,7 @@ async function run() {
           .toArray();
 
         res.send({ data, total });
+
       } catch (err) {
         console.error("Error fetching songs:", err);
         res.status(500).send({ message: "Internal server error" });
