@@ -568,7 +568,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Belive Claim" } };
+      const query = { todo: { $eq: "Belive Claim" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -597,7 +597,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "CID Claim" } };
+      const query = { todo: { $eq: "CID Claim" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -626,7 +626,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Claim Release" } };
+      const query = { todo: { $eq: "Claim Release" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -655,7 +655,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Official Song" } };
+      const query = { todo: { $eq: "Official Song" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -684,7 +684,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Belive Audio" } };
+      const query = { todo: { $eq: "Belive Audio" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -713,7 +713,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "CID Audio" } };
+      const query = { todo: { $eq: "CID Audio" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -742,7 +742,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Publishing" } };
+      const query = { todo: { $eq: "Publishing" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -771,7 +771,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Takedown" } };
+      const query = { todo: { $eq: "Takedown" },status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
