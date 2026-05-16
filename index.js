@@ -67,11 +67,17 @@ const requireAdmin = (req, res, next) => {
 }
 
 const requireUser = (req, res, next) => {
+
   const user = req.session.user;
 
-  if (!user || (user.role !== "user" && user.role !== "admin")) {
-    return res.status(403).send({ message: "Forbidden: Admins and valid users only" });
+  if (!user || (user.role !== "user" && user.role !== "admin" && user.role !== "moderator")) {
+    return res.status(403).send({
+      message: "Forbidden: Admins and valid users only"
+    });
   }
+
+  // IMPORTANT
+  req.user = user;
 
   next();
 };
@@ -180,6 +186,68 @@ async function run() {
     });
 
     /*---------------------------------------------------*/
+    const checkPermission = (permissionName) => {
+      return async (req, res, next) => {
+        try {
+
+          // if (!req.user) {
+          //   return res.status(401).send({
+          //     message: "Unauthorized"
+          //   });
+          // }
+
+          // console.log('req.user:', req.user);
+          const email = req.user.email;
+
+          const user = await userCollection.findOne({ email });
+
+          // if (!user) {
+          //   return res.status(401).send({
+          //     message: "User not found"
+          //   });
+          // }
+
+          if (!user.permissions?.[permissionName]) {
+            return res.status(403).send({
+              message: "Access denied"
+            });
+          }
+
+          next();
+
+        } catch (error) {
+          console.error(error);
+
+          res.status(500).send({
+            message: "Server error"
+          });
+        }
+      };
+    };
+
+    app.patch("/user/permission/:id", async (req, res) => {
+
+      const id = req.params.id;
+
+      const permissions = req.body;
+
+      const query = {
+        _id: new ObjectId(id)
+      };
+
+      const updateDoc = {
+        $set: {
+          permissions
+        }
+      };
+
+      const result = await userCollection.updateOne(
+        query,
+        updateDoc
+      );
+
+      res.send(result);
+    });
 
     // --- All your existing route handlers follow (unchanged) ---
 
@@ -568,7 +636,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Belive Claim" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "Belive Claim" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -597,7 +665,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "CID Claim" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "CID Claim" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -626,7 +694,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Claim Release" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "Claim Release" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -655,7 +723,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Official Song" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "Official Song" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -684,7 +752,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Belive Audio" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "Belive Audio" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -713,7 +781,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "CID Audio" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "CID Audio" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -742,7 +810,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Publishing" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "Publishing" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -771,7 +839,7 @@ async function run() {
         return res.status(403).send({ message: "User not found" });
       }
 
-      const query = { todo: { $eq: "Takedown" },status: { $in: ["", null] } };
+      const query = { todo: { $eq: "Takedown" }, status: { $in: ["", null] } };
 
       if (user.role === "user") {
         // If normal user, show only their uploaded/original songs
@@ -1026,7 +1094,7 @@ async function run() {
     });
 
     // ----------Login route--------------
-    app.post("/login", async (req, res) => {
+     app.post("/login", async (req, res) => {
       const { email, password } = req.body;
       const user = await userCollection.findOne({ email });
 
@@ -1039,11 +1107,22 @@ async function run() {
         return res.status(401).send({ message: "Invalid email or password" });
       }
 
+      const defaultPermissions = {
+        claims: false,
+        distribution: false,
+        takedown: false,
+        library: false,
+      };
+
       // Set session
       req.session.user = {
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        permissions: {
+          ...defaultPermissions,
+          ...user.permissions,
+        }
       };
 
       res.status(200).send({ message: "Login successful", user: req.session.user });
@@ -1522,12 +1601,32 @@ async function run() {
     });
 
 
-    app.get("/me", (req, res) => {
-      if (req.session.user) {
-        res.send({ loggedIn: true, user: req.session.user });
-      } else {
-        res.send({ loggedIn: false });
+  app.get("/me", async (req, res) => {
+      const email = req.session?.user?.email;
+      console.log("Session user email:", email);
+
+      if (!email) {
+        return res.status(401).send({ message: "Unauthorized" });
       }
+
+      const user = await userCollection.findOne({ email });
+
+      const defaultPermissions = {
+        claims: false,
+        distribution: false,
+        takedown: false,
+        library: false,
+      };
+    console.log("User found:", user.name, "with role:", user.role,user.permissions);
+      res.send({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        permissions: {
+          ...defaultPermissions,
+          ...user.permissions,
+        },
+      });
     });
 
     // -------------user route------------------
@@ -1580,6 +1679,14 @@ async function run() {
       const query = { email: email }
       const user = await userCollection.findOne(query)
       const result = { admin: user?.role == "admin" }
+      res.send(result)
+    })
+
+    app.get("/user/moderator/:email", async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      const user = await userCollection.findOne(query)
+      const result = { moderator: user?.role == "moderator" }
       res.send(result)
     })
 
