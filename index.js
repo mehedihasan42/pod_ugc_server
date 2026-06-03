@@ -295,20 +295,30 @@ async function run() {
         // ✅ TODO filter (NEW)
         if (todo) {
           query.$and.push({ todo: todo });
+        } else {
+          // Default = only records with empty todo
+          query.$and.push({
+            todo: { $in: ["", null] }
+          });
         }
 
         // ✅ STATUS filter (NEW)
         if (status) {
-          query.$and.push({ status: status });
-        }
-
-        // ❗ Optional default filter (only if NO todo selected)
-        if (!todo && !status && !search) {
+          query.$and.push({ status });
+        } else {
+          // Default = only records with empty status
           query.$and.push({
-            todo: { $in: ["", null] },
             status: { $in: ["", null] }
           });
         }
+
+        // ❗ Optional default filter (only if NO todo selected)
+        // if (!todo && !status && !search) {
+        //   query.$and.push({
+        //     todo: { $in: ["", null] },
+        //     status: { $in: ["", null] }
+        //   });
+        // }
 
         // fallback if empty
         if (query.$and.length === 0) {
