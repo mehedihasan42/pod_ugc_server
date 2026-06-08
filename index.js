@@ -331,6 +331,7 @@ async function run() {
 
         const data = await songsCollection
           .find(query)
+          .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
           .toArray();
@@ -341,6 +342,43 @@ async function run() {
         console.error("Error fetching songs:", err);
         res.status(500).send({ message: "Internal server error" });
       }
+    });
+
+     app.post("/songs", async (req, res) => {
+      const newSong = {
+        ...req.body,
+        createdAt: new Date()
+      };
+      const inputLink = newSong.youtubeLink;
+
+      // Function to extract videoId from any YouTube link
+      const extractVideoId = (url) => {
+        const regex = /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+        const match = url.match(regex);
+        return match ? match[1] : null;
+      };
+
+      const incomingVideoId = extractVideoId(inputLink);
+
+      if (!incomingVideoId) {
+        return res.status(400).send({ message: "Invalid YouTube link format" });
+      }
+
+      // Fetch all youtubeLinks from DB
+      const existingSongs = await songsCollection.find({}, { projection: { youtubeLink: 1 } }).toArray();
+
+      // Compare extracted videoId from each stored youtubeLink
+      const isDuplicate = existingSongs.some(song => {
+        const storedVideoId = extractVideoId(song.youtubeLink);
+        return storedVideoId === incomingVideoId;
+      });
+
+      if (isDuplicate) {
+        return res.status(409).send({ message: "This song already exists" });
+      }
+
+      const result = await songsCollection.insertOne(newSong);
+      res.status(201).send(result);
     });
 
     app.get("/songs/rightOwner", async (req, res) => {
@@ -536,7 +574,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).sort({ view: -1 }).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -566,7 +604,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).sort({ view: -1 }).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -596,7 +634,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -625,7 +663,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -654,7 +692,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -683,7 +721,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -712,7 +750,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -741,7 +779,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -770,7 +808,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -799,7 +837,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -828,7 +866,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -857,7 +895,7 @@ async function run() {
       }
 
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -970,40 +1008,6 @@ async function run() {
       }
 
       res.send({ exists: false });
-    });
-
-    app.post("/songs", async (req, res) => {
-      const newSong = req.body;
-      const inputLink = newSong.youtubeLink;
-
-      // Function to extract videoId from any YouTube link
-      const extractVideoId = (url) => {
-        const regex = /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-        const match = url.match(regex);
-        return match ? match[1] : null;
-      };
-
-      const incomingVideoId = extractVideoId(inputLink);
-
-      if (!incomingVideoId) {
-        return res.status(400).send({ message: "Invalid YouTube link format" });
-      }
-
-      // Fetch all youtubeLinks from DB
-      const existingSongs = await songsCollection.find({}, { projection: { youtubeLink: 1 } }).toArray();
-
-      // Compare extracted videoId from each stored youtubeLink
-      const isDuplicate = existingSongs.some(song => {
-        const storedVideoId = extractVideoId(song.youtubeLink);
-        return storedVideoId === incomingVideoId;
-      });
-
-      if (isDuplicate) {
-        return res.status(409).send({ message: "This song already exists" });
-      }
-
-      const result = await songsCollection.insertOne(newSong);
-      res.status(201).send(result);
     });
 
 
