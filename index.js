@@ -257,29 +257,59 @@ async function run() {
         const limit = parseInt(req.query.limit) || 100;
         const skip = (page - 1) * limit;
 
+        const sort = req.query.sort || "";
+
         const email = req.query.email;
         const search = req.query.search?.trim() || "";
         const todo = req.query.todo || "";
         const status = req.query.status || "";
 
         if (!email) {
-          return res.status(400).send({ message: "Email is required" });
+          return res.status(400).send({
+            message: "Email is required",
+          });
         }
 
         const user = await userCollection.findOne({ email });
 
         if (!user) {
-          return res.status(403).send({ message: "User not found" });
+          return res.status(403).send({
+            message: "User not found",
+          });
         }
 
+        let sortOption = { createdAt: -1 };
         let query = { $and: [] };
 
-        // 🔹 Role filter
-        if (user.role === "user") {
-          query.$and.push({ rightOwner: user.name });
+        // Sorting
+        if (sort === "asc") {
+          sortOption = { view: 1 };
+
+          query.$and.push({
+            view: { $type: "number" }
+          });
+
+        } else if (sort === "desc") {
+          sortOption = { view: -1 };
+
+          query.$and.push({
+            view: { $type: "number" }
+          });
+
+        } else if (sort === "nan") {
+          query.$and.push({
+            view: null
+          });
         }
 
-        // 🔹 Search filter
+        // Role Filter
+        if (user.role === "user") {
+          query.$and.push({
+            rightOwner: user.name,
+          });
+        }
+
+        // Search Filter
         if (search) {
           query.$and.push({
             $or: [
@@ -292,59 +322,51 @@ async function run() {
           });
         }
 
-        // ✅ TODO filter (NEW)
+        // Todo Filter
         if (todo) {
-          query.$and.push({ todo: todo });
+          query.$and.push({ todo });
         } else {
-          // Default = only records with empty todo
           query.$and.push({
-            todo: { $in: ["", null] }
+            todo: { $in: ["", null] },
           });
         }
 
-        // ✅ STATUS filter (NEW)
+        // Status Filter
         if (status) {
           query.$and.push({ status });
         } else {
-          // Default = only records with empty status
           query.$and.push({
-            status: { $in: ["", null] }
+            status: { $in: ["", null] },
           });
         }
 
-        // ❗ Optional default filter (only if NO todo selected)
-        // if (!todo && !status && !search) {
-        //   query.$and.push({
-        //     todo: { $in: ["", null] },
-        //     status: { $in: ["", null] }
-        //   });
-        // }
-
-        // fallback if empty
         if (query.$and.length === 0) {
           query = {};
         }
-
-        // const query = { todo: {$in: ["", null] },status: { $in: ["", null] } };
 
         const total = await songsCollection.countDocuments(query);
 
         const data = await songsCollection
           .find(query)
-          .sort({ createdAt: -1 })
+          .sort(sortOption)
           .skip(skip)
           .limit(limit)
           .toArray();
 
-        res.send({ data, total });
+        res.send({
+          data,
+          total,
+        });
 
       } catch (err) {
-        console.error("Error fetching songs:", err);
-        res.status(500).send({ message: "Internal server error" });
+        console.error(err);
+        res.status(500).send({
+          message: "Internal Server Error",
+        });
       }
     });
 
-     app.post("/songs", async (req, res) => {
+    app.post("/songs", async (req, res) => {
       const newSong = {
         ...req.body,
         createdAt: new Date()
@@ -554,6 +576,7 @@ async function run() {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 100;
       const skip = (page - 1) * limit;
+      const sort = req.query.sort;
 
       const email = req.query.email;
       if (!email) {
@@ -573,8 +596,18 @@ async function run() {
         query.rightOwner = user.name;
       }
 
+      let sortOption = { updatedAt: -1 };
+
+      if (sort === "asc" || sort === "desc") {
+        sortOption = { view: sort === "asc" ? 1 : -1 };
+
+        // 👇 ignore NaN / non-numeric views ONLY in this case
+        query.view = { $exists: true };
+        query.$expr = { $isNumber: "$view" };
+      }
+
       const total = await songsCollection.countDocuments(query);
-      const data = await songsCollection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray();
+      const data = await songsCollection.find(query).sort(sortOption).skip(skip).limit(limit).toArray();
 
       res.send({ data, total });
     })
@@ -1108,7 +1141,7 @@ async function run() {
     });
 
     // ----------Login route--------------
-     app.post("/login", async (req, res) => {
+    app.post("/login", async (req, res) => {
       const { email, password } = req.body;
       const user = await userCollection.findOne({ email });
 
@@ -1615,9 +1648,9 @@ async function run() {
     });
 
 
-  app.get("/me", async (req, res) => {
+    app.get("/me", async (req, res) => {
       const email = req.session?.user?.email;
-      console.log("Session user email:", email);
+      // console.log("Session user email:", email);
 
       if (!email) {
         return res.status(401).send({ message: "Unauthorized" });
@@ -1631,7 +1664,7 @@ async function run() {
         takedown: false,
         library: false,
       };
-    console.log("User found:", user.name, "with role:", user.role,user.permissions);
+      // console.log("User found:", user.name, "with role:", user.role,user.permissions);
       res.send({
         name: user.name,
         email: user.email,
