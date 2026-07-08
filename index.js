@@ -1071,7 +1071,8 @@ async function run() {
       const options = { upsert: true }
       const updateDoc = {
         $set: {
-          status: newStatus
+          status: newStatus,
+          updatedAt: new Date()
         }
       }
       const result = await songsCollection.updateOne(query, updateDoc, options)
