@@ -5,7 +5,7 @@ require("dotenv").config();
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  "http://localhost:5000/oauth2callback" // must match in Google Cloud Console
+  "https://pod-ugc-service.netlify.app/oauth2callback" // must match in Google Cloud Console
 );
 
 // generate auth url

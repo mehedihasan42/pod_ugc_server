@@ -281,26 +281,12 @@ async function run() {
         let sortOption = { createdAt: -1 };
         let query = { $and: [] };
 
-        // Sorting
-        if (sort === "asc") {
-          sortOption = { view: 1 };
-
-          query.$and.push({
-            view: { $type: "number" }
-          });
-
-        } else if (sort === "desc") {
-          sortOption = { view: -1 };
-
-          query.$and.push({
-            view: { $type: "number" }
-          });
-
-        } else if (sort === "nan") {
-          query.$and.push({
-            view: null
-          });
-        }
+        // Detect whether the user is searching/filtering/sorting
+        const isFiltering =
+          search !== "" ||
+          todo !== "" ||
+          status !== "" ||
+          sort !== "";
 
         // Role Filter
         if (user.role === "user") {
@@ -325,18 +311,42 @@ async function run() {
         // Todo Filter
         if (todo) {
           query.$and.push({ todo });
-        } else {
-          query.$and.push({
-            todo: { $in: ["", null] },
-          });
         }
 
         // Status Filter
         if (status) {
           query.$and.push({ status });
-        } else {
+        }
+
+        // Default: show only records where todo and status are empty
+        if (!isFiltering) {
+          query.$and.push({
+            todo: { $in: ["", null] },
+          });
+
           query.$and.push({
             status: { $in: ["", null] },
+          });
+        }
+
+        // Sorting
+        if (sort === "asc") {
+          sortOption = { view: 1 };
+
+          query.$and.push({
+            view: { $type: "number" },
+          });
+
+        } else if (sort === "desc") {
+          sortOption = { view: -1 };
+
+          query.$and.push({
+            view: { $type: "number" },
+          });
+
+        } else if (sort === "nan") {
+          query.$and.push({
+            view: null,
           });
         }
 
