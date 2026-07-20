@@ -282,11 +282,7 @@ async function run() {
         let query = { $and: [] };
 
         // Detect whether the user is searching/filtering/sorting
-        const isFiltering =
-          search !== "" ||
-          todo !== "" ||
-          status !== "" ||
-          sort !== "";
+
 
         // Role Filter
         if (user.role === "user") {
@@ -319,7 +315,8 @@ async function run() {
         }
 
         // Default: show only records where todo and status are empty
-        if (!isFiltering) {
+
+        if (!todo && !status) {
           query.$and.push({
             todo: { $in: ["", null] },
           });
