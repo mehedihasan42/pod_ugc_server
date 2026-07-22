@@ -251,6 +251,70 @@ async function run() {
 
     // --- All your existing route handlers follow (unchanged) ---
 
+    app.get("/songs/search", requireUser, async (req, res) => {
+      try {
+        const search = req.query.search?.trim() || "";
+        const email = req.query.email;
+
+        if (!email) {
+          return res.status(400).send({
+            message: "Email is required",
+          });
+        }
+
+        const user = await userCollection.findOne({ email });
+
+        if (!user) {
+          return res.status(403).send({
+            message: "User not found",
+          });
+        }
+
+        let query = { $and: [] };
+
+        // Role Filter
+        if (user.role === "user") {
+          query.$and.push({
+            rightOwner: user.name,
+          });
+        }
+
+        // Search Filter
+        if (search) {
+          query.$and.push({
+            $or: [
+              { title: { $regex: search, $options: "i" } },
+              { originalSinger: { $regex: search, $options: "i" } },
+              { uploader: { $regex: search, $options: "i" } },
+              { rightOwner: { $regex: search, $options: "i" } },
+              { youtubeLink: { $regex: search, $options: "i" } },
+            ],
+          });
+        }
+
+        // If there are no filters
+        if (query.$and.length === 0) {
+          query = {};
+        }
+
+        const data = await songsCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.send({
+          data,
+          total: data.length,
+        });
+
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({
+          message: "Internal Server Error",
+        });
+      }
+    });
+
     app.get("/songs", requireUser, async (req, res) => {
       try {
         const page = parseInt(req.query.page) || 1;
