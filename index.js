@@ -322,42 +322,31 @@ async function run() {
         const skip = (page - 1) * limit;
 
         const sort = req.query.sort || "";
-
         const email = req.query.email;
         const search = req.query.search?.trim() || "";
         const todo = req.query.todo || "";
         const status = req.query.status || "";
 
         if (!email) {
-          return res.status(400).send({
-            message: "Email is required",
-          });
+          return res.status(400).send({ message: "Email is required" });
         }
 
         const user = await userCollection.findOne({ email });
-
         if (!user) {
-          return res.status(403).send({
-            message: "User not found",
-          });
+          return res.status(403).send({ message: "User not found" });
         }
 
         let sortOption = { createdAt: -1 };
-        let query = { $and: [] };
-
-        // Detect whether the user is searching/filtering/sorting
-
+        let match = { $and: [] };
 
         // Role Filter
         if (user.role === "user") {
-          query.$and.push({
-            rightOwner: user.name,
-          });
+          match.$and.push({ rightOwner: user.name });
         }
 
         // Search Filter
         if (search) {
-          query.$and.push({
+          match.$and.push({
             $or: [
               { title: { $regex: search, $options: "i" } },
               { originalSinger: { $regex: search, $options: "i" } },
@@ -369,71 +358,62 @@ async function run() {
         }
 
         // Todo Filter
-        if (todo) {
-          query.$and.push({ todo });
-        }
+        if (todo) match.$and.push({ todo });
 
         // Status Filter
-        if (status) {
-          query.$and.push({ status });
-        }
+        if (status) match.$and.push({ status });
 
         // Default: show only records where todo and status are empty
-
         if (!todo && !status) {
-          query.$and.push({
-            todo: { $in: ["", null] },
-          });
-
-          query.$and.push({
-            status: { $in: ["", null] },
-          });
+          match.$and.push({ todo: { $in: ["", null] } });
+          match.$and.push({ status: { $in: ["", null] } });
         }
 
-        // Sorting
-        if (sort === "asc") {
-          sortOption = { view: 1 };
+        if (match.$and.length === 0) match = {};
 
-          query.$and.push({
-            view: { $type: "number" },
-          });
+        // Normalize `view` into a numeric field, regardless of stored type
+        const pipeline = [
+          { $match: match },
+          {
+            $addFields: {
+              viewNum: {
+                $convert: {
+                  input: "$view",
+                  to: "double",
+                  onError: null, // non-numeric string like "N/A" -> null
+                  onNull: null,  // missing/null view -> null
+                },
+              },
+            },
+          },
+        ];
 
-        } else if (sort === "desc") {
-          sortOption = { view: -1 };
-
-          query.$and.push({
-            view: { $type: "number" },
-          });
-
+        // Sorting / numeric filtering, now safe against mixed types
+        if (sort === "asc" || sort === "desc") {
+          pipeline.push({ $match: { viewNum: { $ne: null } } });
+          sortOption = { viewNum: sort === "asc" ? 1 : -1 };
         } else if (sort === "nan") {
-          query.$and.push({
-            view: null,
-          });
+          pipeline.push({ $match: { viewNum: null } });
         }
 
-        if (query.$and.length === 0) {
-          query = {};
-        }
-
-        const total = await songsCollection.countDocuments(query);
+        // Count total (respecting the same filters)
+        const countPipeline = [...pipeline, { $count: "total" }];
+        const countResult = await songsCollection.aggregate(countPipeline).toArray();
+        const total = countResult[0]?.total || 0;
 
         const data = await songsCollection
-          .find(query)
-          .sort(sortOption)
-          .skip(skip)
-          .limit(limit)
+          .aggregate([
+            ...pipeline,
+            { $sort: sortOption },
+            { $skip: skip },
+            { $limit: limit },
+          ])
           .toArray();
 
-        res.send({
-          data,
-          total,
-        });
-
+        res.send({ data, total });
       } catch (err) {
         console.error(err);
-        res.status(500).send({
-          message: "Internal Server Error",
-        });
+        res.status(500).send({ message: "Internal Server Error" });
       }
     });
 
