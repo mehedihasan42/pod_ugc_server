@@ -984,6 +984,44 @@ async function run() {
       res.send({ data, total });
     })
 
+     app.get("/songs/holding", requireUser, checkPermission("distribution"), async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 100;
+      const skip = (page - 1) * limit;
+      const sort = req.query.sort;
+
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ message: "Email is required" });
+      }
+
+      const user = await userCollection.findOne({ email });
+
+      if (!user) {
+        return res.status(403).send({ message: "User not found" });
+      }
+
+      let sortOption = { updatedAt: -1 };
+
+      if (sort === "asc") {
+        sortOption = { view: 1 };
+      } else if (sort === "desc") {
+        sortOption = { view: -1 };
+      }
+
+      const query = { status: { $eq: "holding" }, todo: { $in: ["", null] } };
+
+      if (user.role === "user") {
+        // If normal user, show only their uploaded/original songs
+        query.rightOwner = user.name;
+      }
+
+      const total = await songsCollection.countDocuments(query);
+      const data = await songsCollection.find(query).sort(sortOption).skip(skip).limit(limit).toArray();
+
+      res.send({ data, total });
+    })
+
     app.get("/songs/suggestions", async (req, res) => {
       try {
         const search = req.query.q || "";
